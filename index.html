@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="臺灣警察專科學校歷屆入學考題。按科目刷題、整卷練習、複習錯題。">
+  <title>警專刷題站</title>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./bank.js"></script>
+  <script defer src="./lessons.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="shell bar">
+      <button class="brand" id="home" type="button"><span aria-hidden="true">警</span>警專刷題站</button>
+      <div id="account" class="account"></div>
+    </div>
+  </header>
+  <main id="app" class="shell"></main>
+  <footer class="shell footer"><span>警專刷題站</span><a href="https://exam.tpa.edu.tw/p/412-1022-639.php?Lang=zh-tw" target="_blank" rel="noopener">臺灣警察專科學校歷屆考題</a></footer>
+  <dialog id="original" aria-labelledby="original-title">
+    <div class="dialog-bar"><b id="original-title">原卷與題組</b><form method="dialog"><button class="plain">關閉</button></form></div>
+    <div id="original-pages"></div>
+  </dialog>
+</body>
+</html>
