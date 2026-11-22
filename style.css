@@ -72,6 +72,7 @@ input, select { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px so
 .question { min-width: 0; }
 .question h2 { margin-bottom: 6px; }
 .source-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
+.passage { white-space: pre-wrap; padding: 12px 15px; border-radius: 9px; background: var(--mist); }
 .question-images { overflow: auto; max-height: 570px; border: 1px solid var(--border); border-radius: 9px; background: white; margin: 13px 0; }
 .question-images a { display: block; }
 .question-images img { display: block; width: 100%; height: auto; }

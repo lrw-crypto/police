@@ -199,8 +199,9 @@ function showQuestion() {
   const score = checked ? grade(q, selected) : null;
   const answered = items.filter(item => mode === "exam" ? picks[item.id] : Object.hasOwn(marked, item.id)).length;
   const detailed = lessons[q.id];
+  const imageVersion = q.imageVersion ? `?v=${q.imageVersion}` : "";
   const questionImages = q.crops?.length
-    ? q.crops.map((_, i) => `./media/${q.paper.year}/${q.paper.subject}-${q.no}-${i}.webp`)
+    ? q.crops.map((_, i) => `./media/${q.paper.year}/${q.paper.subject}-${q.no}-${i}.webp${imageVersion}`)
     : [pagePath(q.paper.year, q.page)];
   app.innerHTML = `<div class="breadcrumb">${action("離開練習", "back")} <span>${title}</span></div>
     <div class="heading"><h1>${labels[q.paper.subject]} · ${q.paper.year} 學年度</h1><span class="muted">${index + 1} / ${items.length} 題</span></div>
@@ -209,6 +210,7 @@ function showQuestion() {
       <h2 id="question-title">原卷第 ${q.no} 題</h2>
       <p class="note">${q.options === 5 ? "多選題，可勾選多個答案" : "單選題，選一個答案"}${!q.crops?.length ? " · 請在原卷影像找到題號" : ""}</p>
       <div class="source-tools">${action(q.context ? "閱讀題組文章" : "開啟原卷與題組", "original", "plain")}${action("放大題圖", "zoom", "plain")}</div>
+      ${q.passage ? `<div class="passage" role="group" aria-label="閱讀題組">${html(q.passage)}</div>` : ""}
       <div class="question-images ${q.crops?.length ? "" : "whole"} ${q.text ? "has-text" : ""}">${questionImages.map((path, i) =>
         `<a href="${path}" target="_blank" rel="noopener"><img src="${path}" alt="原卷第 ${q.no} 題影像${questionImages.length > 1 ? `，第 ${i + 1} 部分` : ""}"></a>`).join("")}</div>
       ${q.text ? `<details class="transcript" ${window.matchMedia("(max-width: 490px)").matches ? "open" : ""}><summary>文字題目</summary><div>${html(q.text)}</div></details>` : ""}
