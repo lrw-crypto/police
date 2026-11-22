@@ -3,11 +3,11 @@
 const subjects = [
   { id: "ch", title: "國文", icon: "國" },
   { id: "en", title: "英文", icon: "En" },
-  { id: "math", title: "數學", icon: "∑" },
+  { id: "math", title: "數學乙", icon: "∑" },
   { id: "social", title: "歷史與地理", icon: "地" }
 ];
-const labels = { ch: "國文", en: "英文", ma: "數學甲", mb: "數學乙", hg: "歷史與地理", hi: "歷史", ge: "地理" };
-const groups = { ch: ["ch"], en: ["en"], math: ["ma", "mb"], social: ["hg", "hi", "ge"] };
+const labels = { ch: "國文", en: "英文", mb: "數學乙", hg: "歷史與地理", hi: "歷史", ge: "地理" };
+const groups = { ch: ["ch"], en: ["en"], math: ["mb"], social: ["hg", "hi", "ge"] };
 const app = document.getElementById("app");
 const account = document.getElementById("account");
 const modal = document.getElementById("original");
@@ -64,11 +64,12 @@ function showHome() {
       </form></section>`;
     return;
   }
+  const practiced = itemsFor().filter(q => Object.hasOwn(records, q.id));
   app.innerHTML = hero + `<section class="subjects" aria-label="選擇科目">${subjects.map(subject => {
     const count = itemsFor(subject.id).length;
     return `<button class="subject" data-action="subject" data-value="${subject.id}"><span aria-hidden="true" class="icon">${subject.icon}</span><b>${subject.title}</b><small>${count} 題</small></button>`;
   }).join("")}</section><section class="card"><h2>我的練習</h2>
-  <div class="overview"><span>已練習 <b>${Object.keys(records).length}</b> 題</span><span>待訂正 <b>${Object.values(records).filter(r => r.wrong).length}</b> 題</span></div>
+  <div class="overview"><span>已練習 <b>${practiced.length}</b> 題</span><span>待訂正 <b>${practiced.filter(q => records[q.id].wrong).length}</b> 題</span></div>
   ${action("複習全部錯題", "all-wrong", "soft")}</section>`;
 }
 
