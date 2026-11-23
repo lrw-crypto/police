@@ -92,6 +92,33 @@ input, select { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px so
 .feedback p + p, .feedback p + h3 { margin-top: 8px; }
 .steps { margin-block: 6px 0; padding-inline-start: 1.35em; }
 .steps li + li { margin-top: 5px; }
+.math-lesson { margin-top: 14px; }
+.math-lesson h4 { margin: 0 0 5px; font-size: 1rem; color: #244d43; }
+.math-lesson > h4:not(:first-child) { margin-top: 18px; }
+.math-steps { padding-inline-start: 1.55em; }
+.math-steps li + li { margin-top: 14px; }
+.math-steps li::marker { color: #245949; font-weight: 750; }
+.math-line {
+  margin-top: 6px;
+  padding: 6px 10px;
+  overflow-x: auto;
+  border-inline-start: 3px solid #91b6a8;
+  border-radius: 3px;
+  background: #fff;
+  white-space: pre;
+  font: 1.05rem/1.55 "STIX Two Math", "Cambria Math", "Noto Sans TC", system-ui, sans-serif;
+  color: #163a32;
+}
+.math-line sup { font-size: .72em; }
+.math-fraction, .math-matrix { display: inline-flex; vertical-align: middle; flex-direction: column; text-align: center; line-height: 1.25; }
+.math-fraction > span { padding-inline: .2em; }
+.math-fraction > span:first-child { border-bottom: 1px solid currentColor; }
+.math-matrix { border-inline: 1px solid currentColor; border-radius: 4px; padding: 2px .35em; }
+.math-matrix > span { display: flex; justify-content: center; }
+.math-matrix > span > span { flex: 1 0 2.3em; padding-inline: .2em; }
+.math-diagram { margin: 13px 0 0; overflow: hidden; border: 1px solid #c2d9cf; border-radius: 9px; background: #fff; }
+.math-diagram img { display: block; width: 100%; height: auto; }
+.math-diagram figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; padding: 6px 10px 9px; font-size: .9rem; color: #335b50; }
 .navigator { padding: 14px; }
 .navigator h2 { font-size: 1.02rem; }
 .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }

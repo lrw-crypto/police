@@ -13,6 +13,8 @@ const account = document.getElementById("account");
 const modal = document.getElementById("original");
 const papers = window.POLICE_BANK;
 const lessons = window.POLICE_LESSONS;
+const mathStudy = window.POLICE_MATH_STUDY;
+const mathDiagrams = window.POLICE_MATH_DIAGRAMS;
 const prefix = "police-study.v1.";
 
 function load(key, fallback, storage = "localStorage") {
@@ -264,9 +266,61 @@ function feedback(q, score, detailed) {
     `${score.ratio === 1 ? "答對了" : score.ratio ? "部分答對" : "這題可以再練一次"} · 正確答案 ${q.answers.join(" 或 ")}`;
   return `<section class="feedback ${score.ratio === 1 ? "" : "wrong"}" id="feedback" tabindex="-1" aria-live="polite">
     <h3>${line}</h3>
-    ${detailed ? `<p><b>觀念</b>　${html(detailed[0])}</p><ol class="steps">${detailed.slice(1).map(step => `<li>${html(step)}</li>`).join("")}</ol>`
-    : score.key === "*" ? "<p>原卷公告已更正本題計分方式。</p>" : "<p>這題目前有標準答案，逐題詳解待補。</p>"}
+    ${lessonFeedback(q, detailed, score.key)}
   </section>`;
+}
+
+function lessonFeedback(q, detailed, key) {
+  if (!detailed) {
+    return key === "*" ? "<p>原卷公告已更正本題計分方式。</p>" : "<p>這題目前有標準答案，逐題詳解待補。</p>";
+  }
+  const [concept, ...steps] = detailed;
+  const worked = q.paper.subject === "mb" ? mathStudy?.[q.paper.year]?.[q.no] : null;
+  if (!worked) {
+    return `<p><b>觀念</b>　${html(concept)}</p><ol class="steps">${steps.map(step => `<li>${html(step)}</li>`).join("")}</ol>`;
+  }
+  const [startingPoint, ...formulas] = worked;
+  const diagram = mathDiagrams?.[q.id];
+  return `<div class="math-lesson">
+    <h4>先從哪裡下手</h4><p><b>${html(concept)}</b></p><p>${html(startingPoint)}</p>
+    ${diagram ? mathDiagram(q.id, diagram) : ""}
+    <h4>一步一步算</h4>
+    <ol class="steps math-steps">${steps.map((step, index) => `<li><p>${html(step)}</p>
+      ${formulas[index]?.map(mathLine).join("") ?? ""}</li>`).join("")}</ol>
+  </div>`;
+}
+
+function mathDiagram(id, [caption, description]) {
+  const path = `./math-diagrams/${id}.webp`;
+  return `<figure class="math-diagram">
+    <img src="${path}" alt="${html(description)}" width="840" height="420" loading="lazy" decoding="async">
+    <figcaption><span>${html(caption)}</span><a href="${path}" target="_blank" rel="noopener">看大圖</a></figcaption>
+  </figure>`;
+}
+
+function mathLine(line) {
+  const parts = line.split(/(\[\[[^\[\]|]+\|[^\[\]|]+\]\]|\{\{[^{}]+\}\}|\^\{[^{}]+\})/g);
+  const spoken = [];
+  const expression = parts.map((part, index) => {
+    if (index % 2 === 0) {
+      spoken.push(part);
+      return html(part);
+    }
+    if (part.startsWith("[[")) {
+      const [top, bottom] = part.slice(2, -2).split("|");
+      spoken.push(`（${top}）除以（${bottom}）`);
+      return `<span class="math-fraction"><span>${html(top)}</span><span>${html(bottom)}</span></span>`;
+    }
+    if (part.startsWith("{{")) {
+      const rows = part.slice(2, -2).split(";").map(row => row.split(","));
+      spoken.push(`矩陣，${rows.map(row => row.join("、")).join("；")}`);
+      return `<span class="math-matrix">${rows.map(row => `<span>${row.map(cell => `<span>${html(cell)}</span>`).join("")}</span>`).join("")}</span>`;
+    }
+    const power = part.slice(2, -1);
+    spoken.push(`的 ${power} 次方`);
+    return `<sup>${html(power)}</sup>`;
+  }).join("");
+  return `<div class="math-line" role="math" aria-label="${html(spoken.join(""))}"><span aria-hidden="true">${expression}</span></div>`;
 }
 
 function grade(q, pick = "") {
