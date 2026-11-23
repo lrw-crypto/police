@@ -15,23 +15,34 @@ const papers = window.POLICE_BANK;
 const lessons = window.POLICE_LESSONS;
 const prefix = "police-study.v1.";
 
-function load(key, fallback, storage = localStorage) {
-  try { return JSON.parse(storage.getItem(prefix + key)) ?? fallback; }
-  catch { return fallback; }
+function load(key, fallback, storage = "localStorage") {
+  return JSON.parse(window[storage].getItem(prefix + key)) ?? fallback;
 }
 
-function save(key, value, storage = localStorage) {
-  storage.setItem(prefix + key, JSON.stringify(value));
+function save(key, value, storage = "localStorage") {
+  window[storage].setItem(prefix + key, JSON.stringify(value));
 }
 
 function html(value) {
   return String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
-let profiles = load("profiles", {});
-let user = load("signed-in", "", sessionStorage);
-if (!Object.hasOwn(profiles, user)) user = "";
-let records = user ? load("records." + user, {}) : {};
+function loadStudent(id, name) {
+  return { id, name, records: load("records." + id, {}) };
+}
+
+function restoreStudent() {
+  try {
+    const id = load("signed-in", "", "sessionStorage");
+    if (!id) return null;
+    const profiles = load("profiles", {});
+    return Object.hasOwn(profiles, id) ? loadStudent(id, profiles[id].name) : null;
+  } catch {
+    return null;
+  }
+}
+
+let student = restoreStudent();
 let session = null;
 let screen = "";
 let filter = { year: "", group: "" };
@@ -44,26 +55,27 @@ function jumpTop() {
   window.scrollTo(0, 0);
 }
 
-function showHome() {
+function showHome(creating = false, name = "") {
   screen = "home";
   session = null;
-  account.innerHTML = user
-    ? `<span class="account-name">${html(profiles[user].name)}</span>${action("登出", "logout")}`
+  account.innerHTML = student
+    ? `<span class="account-name">${html(student.name)}</span>${action("登出", "logout")}`
     : "";
   const hero = `<section class="hero"><p class="eyebrow">臺灣警察專科學校 · 110–115 學年度</p>
-    <h1>${user ? "今天要練哪一科？" : "警專入學考試題庫"}</h1>
+    <h1>${student ? "今天要練哪一科？" : "警專入學考試題庫"}</h1>
     <p>按科目練習歷屆選擇題。做完一題看解析，也能整卷作答後再訂正。</p></section>`;
-  if (!user) {
-    app.innerHTML = hero + `<section class="card login"><h2>學生登入</h2>
-      <p class="note">初次使用請建立帳號。帳號和練習紀錄保存在這個瀏覽器。</p>
-      <form id="login">
-        <label>帳號<input name="name" required maxlength="24" autocomplete="username" placeholder="輸入學生代稱"></label>
-        <label>四位數密碼<input name="pin" required type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off"></label>
-        <div class="form-actions"><button class="primary" type="submit" value="login">登入</button><button class="plain" type="submit" value="register">建立帳號</button></div>
+  if (!student) {
+    app.innerHTML = hero + `<section class="card login"><h2>${creating ? "建立學生帳號" : "學生登入"}</h2>
+      <p class="note">帳號和錯題保存在這個瀏覽器。下次請用同一個瀏覽器登入。</p>
+      <form id="login" method="post" data-mode="${creating ? "register" : "login"}">
+        <label>學生姓名或代稱<input name="name" required maxlength="24" autocomplete="username" value="${html(name)}"></label>
+        <label>四位數密碼<input name="pin" required type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="${creating ? "new-password" : "current-password"}"></label>
+        <div class="form-actions"><button class="primary" type="submit">${creating ? "建立帳號並登入" : "登入"}</button><button class="plain" type="button" id="switch-login">${creating ? "返回登入" : "初次使用，建立帳號"}</button></div>
         <p class="error" id="login-error" role="alert"></p>
       </form></section>`;
     return;
   }
+  const { records } = student;
   const practiced = itemsFor().filter(q => Object.hasOwn(records, q.id));
   app.innerHTML = hero + `<section class="subjects" aria-label="選擇科目">${subjects.map(subject => {
     const count = itemsFor(subject.id).length;
@@ -73,14 +85,25 @@ function showHome() {
   ${action("複習全部錯題", "all-wrong", "soft")}</section>`;
 }
 
+function hex(bytes) {
+  return Array.from(bytes, value => value.toString(16).padStart(2, "0")).join("");
+}
+
 async function pinDigest(pin, salt) {
   const encoder = new TextEncoder();
   const material = await crypto.subtle.importKey("raw", encoder.encode(pin), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits({
     name: "PBKDF2", hash: "SHA-256", iterations: 120000, salt: encoder.encode(salt)
   }, material, 256);
-  return Array.from(new Uint8Array(bits), value => value.toString(16).padStart(2, "0")).join("");
+  return hex(new Uint8Array(bits));
 }
+
+app.addEventListener("click", event => {
+  if (event.target.id !== "switch-login") return;
+  const form = event.target.form;
+  showHome(form.dataset.mode === "login", form.elements.namedItem("name").value);
+  document.querySelector('#login input[name="name"]').focus();
+});
 
 app.addEventListener("submit", async event => {
   if (event.target.id !== "login") return;
@@ -91,31 +114,34 @@ app.addEventListener("submit", async event => {
   const name = String(data.get("name")).trim();
   const id = name.normalize("NFKC").toLowerCase();
   const pin = String(data.get("pin"));
-  const creating = event.submitter?.value === "register";
-  if (!id) { message.textContent = "請輸入帳號。"; return; }
+  const creating = form.dataset.mode === "register";
+  if (!id) { message.textContent = "請輸入學生姓名或代稱。"; return; }
+  if (!/^[0-9]{4}$/.test(pin)) { message.textContent = "請輸入四位數密碼。"; return; }
+  if (!window.crypto?.subtle) { message.textContent = "請用支援安全登入的瀏覽器開啟本站 HTTPS 網址。"; return; }
   const buttons = [...form.querySelectorAll("button")];
+  message.textContent = "";
   buttons.forEach(button => button.disabled = true);
   try {
-    profiles = load("profiles", {});
+    const profiles = load("profiles", {});
     const existing = Object.hasOwn(profiles, id) ? profiles[id] : null;
     if (creating && existing) { message.textContent = "這個帳號已建立，請直接登入。"; return; }
-    if (!creating && !existing) { message.textContent = "找不到這個帳號。初次使用請先建立帳號。"; return; }
-    const salt = existing?.salt ?? crypto.randomUUID();
+    if (!creating && !existing) { message.textContent = "這個瀏覽器找不到此帳號。請確認姓名或代稱，首次使用請建立帳號。"; return; }
+    const salt = existing?.salt ?? hex(crypto.getRandomValues(new Uint8Array(16)));
     const digest = await pinDigest(pin, salt);
+    if (!form.isConnected) return;
     if (existing && digest !== existing.digest) { message.textContent = "密碼有誤，請再試一次。"; return; }
+    const nextStudent = loadStudent(id, existing?.name ?? name);
     if (creating) {
       const latest = load("profiles", {});
       if (Object.hasOwn(latest, id)) { message.textContent = "這個帳號已建立，請直接登入。"; return; }
-      profiles = { ...latest, [id]: { name, salt, digest } };
-      save("profiles", profiles);
+      save("profiles", { ...latest, [id]: { name, salt, digest } });
     }
-    save("signed-in", id, sessionStorage);
-    user = id;
-    records = load("records." + user, {});
+    save("signed-in", id, "sessionStorage");
+    student = nextStudent;
     showHome();
     jumpTop();
   } catch {
-    message.textContent = "無法儲存登入資料，請確認瀏覽器允許本站使用本機儲存空間。";
+    message.textContent = "無法讀取或儲存帳號資料。請確認瀏覽器允許本站儲存資料後再試一次。";
   } finally {
     buttons.forEach(button => button.disabled = false);
   }
@@ -133,6 +159,7 @@ function subjectTitle(subject) {
 function showSubject(subject) {
   screen = subject;
   session = null;
+  const { records } = student;
   const available = papers.filter(p => groups[subject].includes(p.subject));
   const selected = available.filter(p => (!filter.year || +filter.year === p.year) && (!filter.group || filter.group === p.subject));
   const items = itemsFor(subject, selected);
@@ -226,7 +253,7 @@ function showQuestion() {
       ${index < items.length - 1 ? action("下一題", "next", "plain") : ""}
       ${mode === "exam" && !complete ? action("交卷", "submit-exam", "primary") : ""}
       ${(complete || (mode !== "exam" && index === items.length - 1)) ? action("查看結果", "result", "soft") : ""}
-      </div></section>
+      </div><p class="error" id="record-error" role="alert" hidden></p></section>
       <aside class="card navigator"><h2>題號</h2><p class="note">已作答 ${answered} / ${items.length} 題</p>
       <div class="numbers">${items.map((item, i) => `<button data-action="goto" data-value="${i}" class="${picks[item.id] || Object.hasOwn(marked, item.id) ? "done" : ""}" ${i === index ? 'aria-current="step"' : ""} aria-label="第 ${i + 1} 題">${i + 1}</button>`).join("")}</div></aside></div>`;
 }
@@ -252,13 +279,22 @@ function grade(q, pick = "") {
 }
 
 function storeGrades(items) {
-  const latest = load("records." + user, {});
-  for (const q of items) {
-    const result = grade(q, session.picks[q.id]);
-    latest[q.id] = { wrong: result.ratio < 1 };
+  try {
+    const key = "records." + student.id;
+    const latest = load(key, {});
+    for (const q of items) {
+      const result = grade(q, session.picks[q.id]);
+      latest[q.id] = { wrong: result.ratio < 1 };
+    }
+    save(key, latest);
+    student.records = latest;
+    return true;
+  } catch {
+    const message = document.getElementById("record-error");
+    message.hidden = false;
+    message.textContent = "這次作答尚未儲存。請確認瀏覽器允許本站儲存資料後再試一次。";
+    return false;
   }
-  records = latest;
-  save("records." + user, records);
 }
 
 function weight(q) {
@@ -298,13 +334,19 @@ app.addEventListener("change", event => {
 
 document.addEventListener("click", event => {
   const button = event.target.closest("[data-action]");
-  if (!button || !user) return;
+  if (!button || !student) return;
   const { action: eventName, value } = button.dataset;
   const q = session?.items[session.index];
   switch (eventName) {
     case "home": showHome(); jumpTop(); return;
     case "logout":
-      sessionStorage.removeItem(prefix + "signed-in"); user = ""; records = {}; showHome(); jumpTop(); return;
+      try {
+        window.sessionStorage.removeItem(prefix + "signed-in");
+      } catch {
+        window.alert("無法登出。請關閉這個分頁以結束練習。");
+        return;
+      }
+      student = null; showHome(); jumpTop(); return;
     case "subject":
       filter = { year: "", group: "" }; showSubject(value); jumpTop(); return;
     case "back": goBack(); return;
@@ -312,8 +354,8 @@ document.addEventListener("click", event => {
       begin(itemsFor(null, papers.filter(p => p.id === value)), eventName, eventName === "exam" ? "整卷作答" : "逐題練習"); return;
     case "random": begin(shuffle(getFiltered()).slice(0, 10), "practice", "隨機練習"); return;
     case "taught": begin(getFiltered().filter(item => lessons[item.id]), "practice", "有詳解的題目"); return;
-    case "all-wrong": begin(itemsFor().filter(item => records[item.id]?.wrong), "practice", "錯題複習"); return;
-    case "subject-wrong": begin(getFiltered().filter(item => records[item.id]?.wrong), "practice", "錯題複習"); return;
+    case "all-wrong": begin(itemsFor().filter(item => student.records[item.id]?.wrong), "practice", "錯題複習"); return;
+    case "subject-wrong": begin(getFiltered().filter(item => student.records[item.id]?.wrong), "practice", "錯題複習"); return;
     case "original": openOriginal(q); return;
     case "zoom": {
       const zoomed = app.querySelector(".question-images").classList.toggle("zoom");
@@ -341,11 +383,13 @@ document.addEventListener("click", event => {
       return;
     }
     case "check":
-      storeGrades([q]); session.marked[q.id] = true; showQuestion(); document.getElementById("feedback").focus(); return;
+      if (!storeGrades([q])) return;
+      session.marked[q.id] = true; showQuestion(); document.getElementById("feedback").focus(); return;
     case "submit-exam": {
       const blank = session.items.filter(item => !session.picks[item.id]).length;
       if (blank && !window.confirm(`還有 ${blank} 題未作答。確定要交卷嗎？`)) return;
-      storeGrades(session.items); session.complete = true; showResult(); return;
+      if (!storeGrades(session.items)) return;
+      session.complete = true; showResult(); return;
     }
     case "result": showResult(); return;
     case "retry": {
