@@ -15,6 +15,8 @@ const papers = window.POLICE_BANK;
 const lessons = window.POLICE_LESSONS;
 const mathStudy = window.POLICE_MATH_STUDY;
 const mathDiagrams = window.POLICE_MATH_DIAGRAMS;
+const socialStudy = window.POLICE_SOCIAL_STUDY;
+const socialVisuals = window.POLICE_SOCIAL_VISUALS;
 const prefix = "police-study.v1.";
 
 function load(key, fallback, storage = "localStorage") {
@@ -275,6 +277,8 @@ function lessonFeedback(q, detailed, key) {
     return key === "*" ? "<p>原卷公告已更正本題計分方式。</p>" : "<p>這題目前有標準答案，逐題詳解待補。</p>";
   }
   const [concept, ...steps] = detailed;
+  const context = socialStudy?.[q.paper.id]?.[q.no - 1];
+  if (context) return socialLesson(q.id, concept, steps, context);
   const worked = q.paper.subject === "mb" ? mathStudy?.[q.paper.year]?.[q.no] : null;
   if (!worked) {
     return `<p><b>觀念</b>　${html(concept)}</p><ol class="steps">${steps.map(step => `<li>${html(step)}</li>`).join("")}</ol>`;
@@ -283,18 +287,40 @@ function lessonFeedback(q, detailed, key) {
   const diagram = mathDiagrams?.[q.id];
   return `<div class="math-lesson">
     <h4>先從哪裡下手</h4><p><b>${html(concept)}</b></p><p>${html(startingPoint)}</p>
-    ${diagram ? mathDiagram(q.id, diagram) : ""}
+    ${diagram ? lessonDiagram(`./math-diagrams/${q.id}.webp`, diagram, "math-diagram") : ""}
     <h4>一步一步算</h4>
     <ol class="steps math-steps">${steps.map((step, index) => `<li><p>${html(step)}</p>
       ${formulas[index]?.map(mathLine).join("") ?? ""}</li>`).join("")}</ol>
   </div>`;
 }
 
-function mathDiagram(id, [caption, description]) {
-  const path = `./math-diagrams/${id}.webp`;
-  return `<figure class="math-diagram">
+function lessonDiagram(path, [caption, description], className) {
+  return `<figure class="lesson-diagram ${className}">
     <img src="${path}" alt="${html(description)}" width="840" height="420" loading="lazy" decoding="async">
     <figcaption><span>${html(caption)}</span><a href="${path}" target="_blank" rel="noopener">看大圖</a></figcaption>
+  </figure>`;
+}
+
+function socialLesson(id, concept, steps, [subject, background, outcome]) {
+  const history = subject === "history";
+  return `<div class="social-lesson">
+    <p class="social-concept"><b>${html(concept)}</b></p>
+    ${socialVisual(socialVisuals?.[id])}
+    <section><h4>${history ? "背景與成因" : "形成原因"}</h4><p>${html(background)}</p></section>
+    <section><h4>${history ? "事件經過與題目線索" : "題目線索與判斷"}</h4>
+      <ol class="steps">${steps.map(step => `<li>${html(step)}</li>`).join("")}</ol>
+    </section>
+    <section><h4>${history ? "後續影響" : "結果與應用"}</h4><p>${html(outcome)}</p></section>
+  </div>`;
+}
+
+function socialVisual(visual) {
+  if (!visual) return "";
+  if (visual.image) {
+    return lessonDiagram(`./social-diagrams/${visual.image}.webp`, [visual.title, visual.alt], "social-diagram");
+  }
+  return `<figure class="social-flow"><figcaption>${html(visual.title)}</figcaption>
+    <ol role="list">${visual.stages.map(([label, description]) => `<li><b>${html(label)}</b><span>${html(description)}</span></li>`).join("")}</ol>
   </figure>`;
 }
 

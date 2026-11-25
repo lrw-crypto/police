@@ -116,9 +116,24 @@ input, select { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px so
 .math-matrix { border-inline: 1px solid currentColor; border-radius: 4px; padding: 2px .35em; }
 .math-matrix > span { display: flex; justify-content: center; }
 .math-matrix > span > span { flex: 1 0 2.3em; padding-inline: .2em; }
-.math-diagram { margin: 13px 0 0; overflow: hidden; border: 1px solid #c2d9cf; border-radius: 9px; background: #fff; }
-.math-diagram img { display: block; width: 100%; height: auto; }
-.math-diagram figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; padding: 6px 10px 9px; font-size: .9rem; color: #335b50; }
+.lesson-diagram { margin: 13px 0 0; overflow: hidden; border: 1px solid #c2d9cf; border-radius: 9px; background: #fff; }
+.lesson-diagram img { display: block; width: 100%; height: auto; }
+.lesson-diagram figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; padding: 6px 10px 9px; font-size: .9rem; color: #335b50; }
+.social-lesson, .social-lesson > section { margin-top: 14px; }
+.social-concept { color: #244d43; }
+.social-lesson h4 { margin: 0 0 4px; font-size: 1rem; color: #244d43; }
+.social-flow { margin: 11px 0 15px; padding: 12px; border: 1px solid #c2d9cf; border-radius: 9px; background: #fff; }
+.social-flow figcaption { font-weight: 750; color: #244d43; }
+.social-flow ol { display: grid; gap: 17px; margin: 9px 0 0; padding: 0; list-style: none; }
+.social-flow li { position: relative; padding: 7px 9px; border: 1px solid #c2d9cf; border-radius: 6px; background: #eef7f3; }
+.social-flow li b, .social-flow li span { display: block; }
+.social-flow li b { color: #245949; }
+.social-flow li span { font-size: .91rem; }
+.social-flow li:not(:last-child)::after { content: ""; position: absolute; inset: calc(100% + 3px) auto auto 17px; width: 6px; height: 6px; border: solid #50766a; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+@media (min-width: 900px) {
+  .social-flow ol { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  .social-flow li:not(:last-child)::after { inset: 50% auto auto calc(100% + 4px); transform: translateY(-50%) rotate(-45deg); }
+}
 .navigator { padding: 14px; }
 .navigator h2 { font-size: 1.02rem; }
 .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
