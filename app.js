@@ -17,7 +17,24 @@ const mathStudy = window.POLICE_MATH_STUDY;
 const mathDiagrams = window.POLICE_MATH_DIAGRAMS;
 const socialStudy = window.POLICE_SOCIAL_STUDY;
 const socialVisuals = window.POLICE_SOCIAL_VISUALS;
+const languageStudy = window.POLICE_LANGUAGE_STUDY;
+const languageVisuals = window.POLICE_LANGUAGE_VISUALS;
 const prefix = "police-study.v1.";
+
+const languageMethods = {
+  sound: ["字音與字形拆解", "先把單字放回完整詞語，再檢查讀音的聲母、韻母和聲調，或用詞義確認應寫哪個字。"],
+  meaning: ["詞義與用法", "先用自己的話解釋詞語，再代回句子。留意褒貶、使用對象，以及前後有沒有變化。"],
+  writing: ["語句與寫法拆解", "先看句子如何連接、描寫誰，或怎麼安排先後。再檢查這個寫法帶來的效果。"],
+  poem: ["詩句怎麼讀", "先把景物、時間和動作說成白話，再從它們的搭配找情緒或意思。"],
+  culture: ["典故與辨認線索", "先看題目要找人物、作品、文體還是場合。用兩條線索交叉確認，別只靠一個熟悉的字。"],
+  classic: ["文言換成白話", "先找誰在做什麼，再把關鍵字換成白話放回原句。句子有轉折或省略時，把省掉的意思補出來。"],
+  reading: ["閱讀線索拆解", "先圈題目問的對象、範圍或否定詞，再回文找能直接支持或反駁選項的句子。"],
+  vocab: ["關鍵字與用法", "先看空格需要的詞性，再找例子、反義或結果的提示。把選出的字連同常搭配的詞一起念。"],
+  phrase: ["片語怎麼用", "整組讀動詞和介系詞，確認後面接人、事物還是動作。把整個片語換成中文，再看上下文通不通。"],
+  grammar: ["句型拆解", "先找主詞和主要動詞，再看空格需要的時態、主動或被動，以及前面的字要求哪種形式。"],
+  link: ["前後句的關係", "分別翻譯前後兩段，再判斷是因果、讓步、補充還是條件。最後檢查連接語後面接名詞還是完整句子。"],
+  main: ["篇章怎麼讀", "把每段濃縮成一句話，優先比較首尾與重複出現的概念。主旨要能涵蓋全文，段落功能則看它在替全文做什麼。"]
+};
 
 function load(key, fallback, storage = "localStorage") {
   return JSON.parse(window[storage].getItem(prefix + key)) ?? fallback;
@@ -277,6 +294,8 @@ function lessonFeedback(q, detailed, key) {
     return key === "*" ? "<p>原卷公告已更正本題計分方式。</p>" : "<p>這題目前有標準答案，逐題詳解待補。</p>";
   }
   const [concept, ...steps] = detailed;
+  const language = languageStudy?.[q.paper.id]?.[q.no - 1];
+  if (language) return languageLesson(q.id, concept, steps, language, key);
   const context = socialStudy?.[q.paper.id]?.[q.no - 1];
   if (context) return socialLesson(q.id, concept, steps, context);
   const worked = q.paper.subject === "mb" ? mathStudy?.[q.paper.year]?.[q.no] : null;
@@ -303,8 +322,8 @@ function lessonDiagram(path, [caption, description], className) {
 
 function socialLesson(id, concept, steps, [subject, background, outcome]) {
   const history = subject === "history";
-  return `<div class="social-lesson">
-    <p class="social-concept"><b>${html(concept)}</b></p>
+  return `<div class="lesson-context social-lesson">
+    <p class="lesson-concept"><b>${html(concept)}</b></p>
     ${socialVisual(socialVisuals?.[id])}
     <section><h4>${history ? "背景與成因" : "形成原因"}</h4><p>${html(background)}</p></section>
     <section><h4>${history ? "事件經過與題目線索" : "題目線索與判斷"}</h4>
@@ -319,8 +338,28 @@ function socialVisual(visual) {
   if (visual.image) {
     return lessonDiagram(`./social-diagrams/${visual.image}.webp`, [visual.title, visual.alt], "social-diagram");
   }
-  return `<figure class="social-flow"><figcaption>${html(visual.title)}</figcaption>
-    <ol role="list">${visual.stages.map(([label, description]) => `<li><b>${html(label)}</b><span>${html(description)}</span></li>`).join("")}</ol>
+  return studyFlow(visual, "social-flow");
+}
+
+function languageLesson(id, concept, steps, [type, worked], key) {
+  const [heading, method] = languageMethods[type];
+  const visual = languageVisuals?.[id];
+  const awarded = key === "*";
+  return `<div class="lesson-context language-lesson">
+    <p class="lesson-concept"><b>${html(concept)}</b></p>
+    ${visual ? studyFlow(visual, "language-flow") : ""}
+    <section><h4>${awarded ? "更正後如何計分" : heading}</h4><p>${html(worked)}</p></section>
+    <section><h4>${awarded ? "原題說明" : "答案怎麼判斷"}</h4>
+      <ol class="steps">${steps.map(step => `<li>${html(step)}</li>`).join("")}</ol>
+    </section>
+    ${awarded ? "" : `<section class="language-method"><h4>下次遇到這類題目</h4><p>${html(method)}</p></section>`}
+  </div>`;
+}
+
+function studyFlow({ title, stages, ordered = true }, className) {
+  const list = ordered ? "ol" : "ul";
+  return `<figure class="study-flow ${className}"><figcaption>${html(title)}</figcaption>
+    <${list} role="list">${stages.map(([label, description]) => `<li><b>${html(label)}</b><span>${html(description)}</span></li>`).join("")}</${list}>
   </figure>`;
 }
 
